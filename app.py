@@ -3,12 +3,10 @@ import json
 from binance.client import Client
 from talib import abstract
 import pandas as pd
+import numpy as np
+from openpyxl import Workbook, load_workbook
+from datetime import datetime
 
-import websocket
-import json
-from binance.client import Client
-from talib import abstract
-import pandas as pd
 
 class TradingBot:
     def __init__(self, api_key, api_secret, trading_symbol, leverage, risk_reward_ratio):
@@ -23,7 +21,7 @@ class TradingBot:
         self.exit_price = 0.00
         self.demo_acc = 10000
         self.tp = 0
-        self.sell_big_profit = 0
+        self.big_profit = 0
         self.stoploss = 0
         self.profit_loss = 0
 
@@ -39,25 +37,115 @@ class TradingBot:
         print('Leverage set to: ', change_leverage['leverage'])
 
     def fetch_history_data(self):
-        history_data = self.client.futures_klines(symbol=self.trading_symbol, interval=self.client.KLINE_INTERVAL_5MINUTE, limit=200)
+        history_data = self.client.futures_klines(symbol=self.trading_symbol, interval=self.client.KLINE_INTERVAL_5MINUTE, limit=100)
         columns = ['T', 'O', 'H', 'L', 'C', 'V', 'KC', 'QV', 'NT', 'TBA', 'TBQ', 'E']
         self.df_final = pd.DataFrame(history_data, columns=columns)
         self.df_final= self.df_final.drop(self.df_final.tail(1).index)
+        self.df_final= self.df_final.drop(['V', 'KC', 'QV', 'NT', 'TBA', 'TBQ', 'E'],axis= 1 )
         self.df_final['T'] = pd.to_datetime(self.df_final['T'], unit='ms')
-        self.df_final['EMA'] = abstract.EMA(self.df_final['C'], timeperiod=5)
+        self.df_final['EMA'] = np.round(abstract.EMA(self.df_final['C'], timeperiod=5),2)
         print(self.df_final.tail(5))
-        print(type(self.df_final))
 
+
+    def add_to_excel(self , timestamp ,entry_price, exit_price, stop_loss, take_profit, big_profit, pointes):
+        try:
+              wb = load_workbook('Sell_trades2.xlsx')
+              sheet = wb.active
+        except FileNotFoundError:
+              wb = Workbook()
+              sheet = wb.active
+              sheet.append(['Entry Time', 'Entry Price', 'Exit Price','stop_loss','take_profit','big_profit','pointes'])
+
+        for row in sheet.iter_rows(min_row=2, max_col=1):
+            if row[0].value == timestamp:
+                print("Duplicate entry found. Exiting without adding.")
+                return
+        sheet.append([timestamp, entry_price, exit_price,stop_loss,take_profit,big_profit,pointes])
+        wb.save('Sell_trades2.xlsx')
+        print("Entry added successfully.")
+
+
+    def run_trading_strategy_Sell(self, timestamp, last_open_price, last_close_price, last_high_price, last_low_price, last_EMA, is_Red,close_price):
+      pointes = self.exit_price - self.entry_price
+      if is_Red and last_low_price > last_EMA:
+            print('##################################')
+            print('SELL SIGNAL IS ON! Executing order')
+            print('##################################')
+            print("=========================================================")
+
+            print("The time is :",timestamp)
+            self.entry_price= last_close_price
+            print("The Entry price: ",self.entry_price)
+
+            self.stoploss = last_high_price
+            print("Calculated stop loss at:", self.stoploss)
+
+            self.tp = self.entry_price - 60
+            print("Calculated Take profit at: ",self.tp)
+
+            self.big_profit = self.entry_price - 100
+            print("Calculated BIG Take profit at:", self.big_profit)
+
+            self.exit_price = self.stoploss
+            print("Initial exit price set to stoploss:", self.exit_price)
+
+
+      if close_price == self.stoploss:
+          self.exit_price = self.stoploss
+          print("The stoploss is hit ")
+          print(self.stoploss)
+          print(close_price)
+          self.add_to_excel(timestamp ,self.entry_price, self.entry_price , self.stoploss, self.tp, self.big_profit, pointes)
+
+      if close_price == self.tp :
+          self.exit_price = close_price
+          print("Exit price updated to first take profit:", self.exit_price)
+          self.add_to_excel(timestamp ,self.entry_price, self.entry_price , self.stoploss, self.tp, self.big_profit, pointes)
+
+      if close_price == self.big_profit :
+          self.exit_price = close_price
+          print("Exit price updated to BIG take profit:", self.exit_price)
+          self.add_to_excel(timestamp ,self.entry_price, self.entry_price , self.stoploss, self.tp, self.big_profit, pointes)
+
+
+        
+
+    def Previous_Data(self,df, close_price):
+        previous_data= df.iloc[-1]
+        last_time= previous_data['T']
+        last_close=float(previous_data['C'])
+        last_open =float(previous_data['O'])
+        last_low= float(previous_data['L'])
+        last_high=float(previous_data['H'])
+        last_EMA = previous_data['EMA']
+        is_Red = last_close < last_open
+        self.run_trading_strategy_Sell(last_time, last_open, last_close, last_high, last_low,last_EMA, is_Red, close_price)
+
+        
+    def Update_data(self, timestamp, open_price, high_price, low_price, close_price,candel_closing):
+         History_data = self.df_final
+         if candel_closing:
+             new_data = pd.DataFrame({
+                'T': [pd.to_datetime(timestamp , unit='ms')],
+                'O': [open_price],
+                'H': [high_price],
+                'L': [low_price],
+                'C': [close_price] })
+             self.df_final= pd.concat([History_data, new_data], ignore_index=True) 
+             self.df_final['EMA'] = np.round(abstract.EMA(self.df_final['C'] ,5),2)
+         self.Previous_Data(self.df_final ,close_price)
+        
+    
     def on_message(self, ws, message):
         data = json.loads(message)
         candel = data['k']
-        L_Time = data['E']
+        L_Time = candel['t']
         open_data = float(candel['o'])
         candel_closing = candel['x']
         high_data = float(candel['h'])
         low_data = float(candel['l'])
         closing_data = float(candel['c'])
-
+        self.Update_data(L_Time, open_data, high_data, low_data, closing_data, candel_closing)
 
     def on_error(self, ws, error):
         print(f"WebSocket Error: {error}")
@@ -79,10 +167,6 @@ class TradingBot:
         ws.on_close=self.on_close
         ws.run_forever()
 
-    def run_trading_strategy(self):
-        # Your trading strategy logic here
-        pass
-
 if __name__ == "__main__":
     # Replace these with your actual API key and secret
     api_key = 'BwtkmrnTu9U2r1gjdy5gwtv3s8s82QR0kEt130MBNWLDMcImeJHU6Af8fyYpF7AN'
@@ -101,6 +185,7 @@ if __name__ == "__main__":
 
    
     # Connect to WebSocket and start trading strategy
-    # trading_bot.connect_websocket()
+    trading_bot.connect_websocket()
     # trading_bot.run_trading_strategy()
+
 

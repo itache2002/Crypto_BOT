@@ -1,9 +1,11 @@
 import websocket
+import json
+from binance.client import Client
+import pandas as pd
 from binance.client import Client
 from binance.enums import *
 from talib import abstract
-import json
-import pandas as pd
+import numpy as np
 
 # This api is for Mainnet.
 api_key = 'BwtkmrnTu9U2r1gjdy5gwtv3s8s82QR0kEt130MBNWLDMcImeJHU6Af8fyYpF7AN'
@@ -31,6 +33,7 @@ tp = 0
 sell_big_profit=0
 Stoploss = 0 
 profit_loss =0
+TakePTofit=0
 # Binance WebSocket URL for Kline/Candlestick data
 # websocket_url = f"wss://stream.binancefuture.com/ws/{symbol.lower()}@kline_{interval}" #for testnet market 
 futures_websocket = 'wss://fstream3.binance.com/ws/{}@kline_{}'.format(symbol, interval)# for live markert data
@@ -55,8 +58,7 @@ df_final['EMA']= abstract.EMA(df_final['C'],timeperiod= EMA)
 
 def on_message(ws, message):
 
-    global df_final , Demo_acc, entry_price, tralling_ST,  profit_loss, exit_price,tp,sell_big_profit,Stoploss
-    take_profit=0
+    global df_final , Demo_acc, entry_price, tralling_ST,  profit_loss, exit_price,tp,sell_big_profit,Stoploss,TakePTofit
     try:
         data = json.loads(message)
         candel= data['k']
@@ -91,14 +93,12 @@ def on_message(ws, message):
                 print('##################################')
                 print("=========================================================")
                 
-                entry_price= last_open
+                entry_price= last_close
                 entry_price = (round(entry_price,2))
                 print("Entry Price at: {}".format(entry_price))  
-                
                 sl = last_high
                 Stoploss=(round(sl,2))
                 print("Calculated stop loss at: {}".format(Stoploss))
-                
 #               take_profit = (entry_price - (rrr * (stop_loss - entry_price)))
                 take_profit = entry_price - 60
                 sell_big_profit = entry_price -100
@@ -129,7 +129,6 @@ def on_message(ws, message):
             Demo_acc -= 170
             add_entry_to_excel(pd.to_datetime(L_Time, unit='ms').floor('T'), entry_price, exit_price, profit_loss, Demo_acc,tp,Stoploss)
             print("The finel balance ", Demo_acc)
-                
 #                 sell_limit_order = client.futures_create_order(symbol=TRADE_SYMBOL, side='SELL', type='LIMIT', timeInForce='GTC', price=entry_price, quantity=TRADE_QUANTITY)
 #                 order_id = sell_limit_order['orderId']
 #                 order_status = sell_limit_order['status']
@@ -184,9 +183,5 @@ def on_open(ws):
     print("Waiting for Signal")
 
 # Create WebSocket connection
-ws = websocket.create_connection(futures_websocket)
-ws.on_open=on_open 
-ws.on_message=on_message
-ws.on_error=on_error
-ws.on_close=on_close
+ws = websocket.WebSocketApp(futures_websocket, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
 ws.run_forever()
