@@ -109,7 +109,7 @@ class TradingBot:
             self.big_profit = int(self.big_profit)
             print("Calculated BIG Take profit at:", self.big_profit)
 
-            self.sec_big_profit = self.sec_big_profit + 100
+            self.sec_big_profit = self.sec_big_profit - 100
             self.sec_big_profit = int(self.sec_big_profit)
             print("Calculated sec big profit profit at:",self.sec_big_profit)
 
@@ -135,7 +135,7 @@ class TradingBot:
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
 
       if closing_floor == self.sec_big_profit:
-          self.sec_big_profit =self.sec_big_profit + 100
+          self.sec_big_profit =self.sec_big_profit - 100
           print("The new sec_big_profit is set:", self.sec_big_profit)
           self.trailing_stoploss(closing_floor)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
