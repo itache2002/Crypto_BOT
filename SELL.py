@@ -24,6 +24,7 @@ class TradingBot:
         self.big_profit = 0
         self.stoploss = 0
         self.profit_loss = 0
+        self.sec_big_profit = 0
 
     def set_initial_balance(self):
         start_balance = self.client.futures_account_balance()
@@ -47,26 +48,45 @@ class TradingBot:
         print(self.df_final.tail(5))
 
 
-    def add_to_excel(self , timestamp ,entry_price, exit_price, stop_loss, take_profit, big_profit, pointes):
+    def add_to_excel(self , timestamp ,entry_price, exit_price, stop_loss, take_profit, big_profit, pointes,sec_big_profit):
         try:
               wb = load_workbook('Sell_trades2.xlsx')
               sheet = wb.active
         except FileNotFoundError:
               wb = Workbook()
               sheet = wb.active
-              sheet.append(['Entry Time', 'Entry Price', 'Exit Price','stop_loss','take_profit','big_profit','pointes'])
+              sheet.append(['Entry Time', 'Entry Price', 'Exit Price','stop_loss','take_profit','big_profit','pointes','sec_big_profit'])
 
         for row in sheet.iter_rows(min_row=2, max_col=1):
             if row[0].value == timestamp:
                 print("Duplicate entry found. Exiting without adding.")
                 return
-        sheet.append([timestamp, entry_price, exit_price,stop_loss,take_profit,big_profit,pointes])
+        sheet.append([timestamp, entry_price, exit_price,stop_loss,take_profit,big_profit,pointes,sec_big_profit])
         wb.save('Sell_trades2.xlsx')
         print("Entry added successfully.")
+
+    def trailing_stoploss(self,current_price):
+        points_covered = abs(current_price - self.entry_price)
+        trailing_diff = abs(self.sec_big_profit - current_price)
+        if points_covered > 200 and points_covered < 290 :
+            self.stoploss = self.entry_price + 80
+            if trailing_diff >= 40 and trailing_diff <=50 :
+                self.stoploss =self.stoploss + 20
+        if points_covered > 300 and points_covered < 390:
+            if trailing_diff >= 10 and trailing_diff <=15:
+                self.stoploss =self.stoploss + 10
+        if points_covered > 400 and points_covered < 490 :
+            if trailing_diff >= 5 and trailing_diff <= 10 :
+                self.stoploss =self.stoploss +10
+        if points_covered > 500 :
+            if trailing_diff >=5 and trailing_diff <=10:
+                self.stoploss = self.stoploss + 5
+
 
 
     def run_trading_strategy_Sell(self, timestamp, last_open_price, last_close_price, last_high_price, last_low_price, last_EMA, is_Red,close_price):
       pointes = self.exit_price - self.entry_price
+      closing_floor =int(close_price)
       if is_Red and last_low_price > last_EMA:
             print('##################################')
             print('SELL SIGNAL IS ON! Executing order')
@@ -78,38 +98,50 @@ class TradingBot:
             print("The Entry price: ",self.entry_price)
 
             self.stoploss = last_high_price
+            self.stoploss = int(self.stoploss)
             print("Calculated stop loss at:", self.stoploss)
 
             self.tp = self.entry_price - 60
+            self.tp =  int(self.tp)
             print("Calculated Take profit at: ",self.tp)
 
-            self.big_profit = self.entry_price - 100
+            self.big_profit = self.tp - 100
+            self.big_profit = int(self.big_profit)
             print("Calculated BIG Take profit at:", self.big_profit)
+
+            self.sec_big_profit = self.sec_big_profit + 100
+            self.sec_big_profit = int(self.sec_big_profit)
+            print("Calculated sec big profit profit at:",self.sec_big_profit)
 
             self.exit_price = self.stoploss
             print("Initial exit price set to stoploss:", self.exit_price)
 
 
-      if close_price == self.stoploss:
+      if closing_floor == self.stoploss:
           self.exit_price = self.stoploss
           print("The stoploss is hit ")
           print(self.stoploss)
           print(close_price)
-          self.add_to_excel(timestamp ,self.entry_price, self.entry_price , self.stoploss, self.tp, self.big_profit, pointes)
+          self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
 
-      if close_price == self.tp :
+      if closing_floor == self.tp :
           self.exit_price = close_price
           print("Exit price updated to first take profit:", self.exit_price)
-          self.add_to_excel(timestamp ,self.entry_price, self.entry_price , self.stoploss, self.tp, self.big_profit, pointes)
+          self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
 
-      if close_price == self.big_profit :
+      if closing_floor == self.big_profit :
           self.exit_price = close_price
           print("Exit price updated to BIG take profit:", self.exit_price)
-          self.add_to_excel(timestamp ,self.entry_price, self.entry_price , self.stoploss, self.tp, self.big_profit, pointes)
+          self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
+
+      if closing_floor == self.sec_big_profit:
+          self.sec_big_profit =self.sec_big_profit + 100
+          print("The new sec_big_profit is set:", self.sec_big_profit)
+          self.trailing_stoploss(closing_floor)
+          self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
 
 
         
-
     def Previous_Data(self,df, close_price):
         previous_data= df.iloc[-1]
         last_time= previous_data['T']
@@ -187,5 +219,6 @@ if __name__ == "__main__":
     # Connect to WebSocket and start trading strategy
     trading_bot.connect_websocket()
     # trading_bot.run_trading_strategy()
+
 
 
