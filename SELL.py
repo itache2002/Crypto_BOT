@@ -61,7 +61,7 @@ class TradingBot:
             if row[0].value == timestamp:
                 print("Duplicate entry found. Exiting without adding.")
                 return
-        sheet.append([timestamp, entry_price, exit_price,stop_loss,take_profit,big_profit,pointes,sec_big_profit])
+        sheet.append([timestamp, entry_price, exit_price, stop_loss, take_profit, big_profit,pointes,sec_big_profit])
         wb.save('Sell_trades2.xlsx')
         print("Entry added successfully.")
 
@@ -77,9 +77,10 @@ class TradingBot:
                 self.stoploss =self.stoploss + 10
         if points_covered > 400 and points_covered < 490 :
             if trailing_diff >= 5 and trailing_diff <= 10 :
-                self.stoploss =self.stoploss +10
+                self.stoploss =self.stoploss + 10
         if points_covered > 500 :
             if trailing_diff >=5 and trailing_diff <=10:
+
                 self.stoploss = self.stoploss + 5
 
 
