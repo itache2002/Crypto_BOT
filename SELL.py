@@ -109,7 +109,7 @@ class TradingBot:
             self.big_profit = int(self.big_profit)
             print("Calculated BIG Take profit at:", self.big_profit)
 
-            self.sec_big_profit = self.sec_big_profit - 100
+            self.sec_big_profit = self.big_profit - 100
             self.sec_big_profit = int(self.sec_big_profit)
             print("Calculated sec big profit profit at:",self.sec_big_profit)
 

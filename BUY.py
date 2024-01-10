@@ -74,7 +74,7 @@ class BUY():
             if trailing_diff >=5 and trailing_diff <=10:
                 self.stoploss = self.stoploss + 5
 
-                
+
 
     def run_trading_strategy_Sell(self, timestamp, last_open_price, last_close_price, last_high_price, last_low_price, last_EMA, is_Red,close_price):
       pointes = self.exit_price - self.entry_price
@@ -101,7 +101,7 @@ class BUY():
             self.big_profit = int(self.big_profit)
             print("Calculated BIG Take profit at:", self.big_profit)
 
-            self.sec_big_profit = self.sec_big_profit + 100
+            self.sec_big_profit = self.big_profit + 100
             self.sec_big_profit = int(self.sec_big_profit)
             print("Calculated sec big profit profit at:",self.sec_big_profit)
 
@@ -132,8 +132,6 @@ class BUY():
           print("The new sec_big_profit is set:", self.sec_big_profit)
           self.trailing_stoploss(closing_floor)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
-
-
 
     
     def Previous_Data(self,df, close_price):
