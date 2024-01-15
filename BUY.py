@@ -58,13 +58,12 @@ class BUY():
 
         precision_for_price = int(-math.log10(float(price_filter['tickSize'])))
         precision_for_quantity = int(-math.log10(float(lot_size_filter['stepSize'])))
-
+        rounded_price = round(self.entry_price, precision_for_price)
         check_position = self.client.futures_position_information()
         df = pd.DataFrame(check_position)
         position_amount = df.iloc[240]['positionAmt']
-        TRADE_QUANTITY = (130 * self.leverage) / 42341
+        TRADE_QUANTITY = (16 * self.leverage) / rounded_price
         half_TRADE_QUANTITY = TRADE_QUANTITY/2
-        rounded_price = round(self.entry_price, precision_for_price)
         rounded_quantity = round(TRADE_QUANTITY, 3)
         round_half_quantity = round(half_TRADE_QUANTITY,precision_for_quantity)
         print(rounded_price)
@@ -81,8 +80,10 @@ class BUY():
                 order_id=sell_limit_order['orderId']
                 order_status = sell_limit_order['status']
                 print(order_id)
+
                 while order_status != 'FILLED':
                     time.sleep(10)
+                    print(order_status)
                     if order_status == 'FILLED':
                                 time.sleep(1)
                                 set_stop_loss = self.client.futures_create_order(symbol=self.trading_symbol, 
@@ -91,6 +92,7 @@ class BUY():
                                                                                  quantity=rounded_quantity, 
                                                                                  stopPrice=self.stoploss)
                                 time.sleep(1)
+                                print("placing the stoploss and take profit order",order_status)
                                 set_take_profit = self.client.futures_create_order(symbol=self.trading_symbol, 
                                                                                    side='SELL', 
                                                                                    type='TAKE_PROFIT_MARKET', 
@@ -293,6 +295,7 @@ if __name__ == "__main__":
     buy.set_initial_balance()
     buy.set_leverage()
     buy.fetch_history_data()
+
     buy.connect_websocket()
 
     
