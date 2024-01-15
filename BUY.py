@@ -27,6 +27,14 @@ class BUY():
         self.profit_loss = 0
         self.sec_big_profit = 0
         self.thi_big_profit = 0
+        self.rounded_quantity = 0
+        self.inter_stoploss_position = 0  
+        self.sec_inter_stoploss_position =0
+        self.thi_inter_stoploss_position = 0
+        self.four_inter_stoploss_position = 0 
+        self.five_inter_stoploss_position =0
+        self.four_big_profit = 0
+        self.five_big_profit =0
 
     def set_initial_balance(self):
         start_balance = self.client.futures_account_balance()
@@ -62,12 +70,12 @@ class BUY():
         check_position = self.client.futures_position_information()
         df = pd.DataFrame(check_position)
         position_amount = df.iloc[240]['positionAmt']
-        TRADE_QUANTITY = (16 * self.leverage) / rounded_price
+        TRADE_QUANTITY = (32 * self.leverage) / rounded_price
         half_TRADE_QUANTITY = TRADE_QUANTITY/2
-        rounded_quantity = round(TRADE_QUANTITY, 3)
+        self.rounded_quantity = round(TRADE_QUANTITY, 3)
         round_half_quantity = round(half_TRADE_QUANTITY,precision_for_quantity)
         print(rounded_price)
-        print(rounded_quantity)
+        print(self.rounded_quantity)
         print(round_half_quantity)
         if float(position_amount) == 0:
             try:
@@ -76,20 +84,18 @@ class BUY():
                                                                      type='LIMIT', 
                                                                      timeInForce='GTC', 
                                                                      price= rounded_price, 
-                                                                     quantity=rounded_quantity)
+                                                                     quantity=self.rounded_quantity)
                 order_id=sell_limit_order['orderId']
                 order_status = sell_limit_order['status']
                 print(order_id)
-
-                while order_status != 'FILLED':
-                    time.sleep(10)
-                    print(order_status)
-                    if order_status == 'FILLED':
+                time.sleep(10)
+                print(order_status)
+                if order_status == 'FILLED' or order_status == 'NEW':
                                 time.sleep(1)
                                 set_stop_loss = self.client.futures_create_order(symbol=self.trading_symbol, 
                                                                                  side='SELL', 
                                                                                  type='STOP_MARKET', 
-                                                                                 quantity=rounded_quantity, 
+                                                                                 quantity=self.rounded_quantity, 
                                                                                  stopPrice=self.stoploss)
                                 time.sleep(1)
                                 print("placing the stoploss and take profit order",order_status)
@@ -98,6 +104,9 @@ class BUY():
                                                                                    type='TAKE_PROFIT_MARKET', 
                                                                                    quantity=round_half_quantity, 
                                                                                    stopPrice=self.tp)
+                                
+
+
             except  BinanceAPIException as e:
                     print(f"Binance API Exception: {e}")
                     print(f"Status Code: {e.status_code}")
@@ -128,29 +137,23 @@ class BUY():
         print("Entry added successfully.")
 
 
-    def trailing_stoploss(self,current_price):
-        points_covered = abs(current_price - self.entry_price)
-        print(points_covered)
-        trailing_diff = abs(self.sec_big_profit - current_price)
-        print(trailing_diff)
-        if points_covered > 200 and points_covered < 290 :
-            self.stoploss = self.entry_price + 80
-            print("The new stoploss",self.stoploss)
-            if trailing_diff >= 40 and trailing_diff <=50 :
-                self.stoploss =self.stoploss + 20
-                print("The new stoploss",self.stoploss)
-        if points_covered > 300 and points_covered < 390:
-            if trailing_diff >= 10 and trailing_diff <=15:
-                self.stoploss =self.stoploss + 10
-                print("The new stoploss",self.stoploss)
-        if points_covered > 400 and points_covered < 490 :
-            if trailing_diff >= 5 and trailing_diff <= 10 :
-                self.stoploss =self.stoploss +10
-                print("The new stoploss",self.stoploss)
-        if points_covered > 500 :
-            if trailing_diff >=5 and trailing_diff <=10:
-                self.stoploss = self.stoploss + 5
-                print("The new stoploss",self.stoploss)
+    def trailing_stoploss(self):
+          
+        # Cancel existing stop-loss order if it exists
+          existing_stop_loss_orders = self.client.futures_get_open_orders(symbol=self.trading_symbol, side='SELL', type='STOP_MARKET')
+          for order in existing_stop_loss_orders:
+            order_id = order['orderId']
+            self.client.futures_cancel_order(symbol=self.trading_symbol, orderId=order_id)
+          # Create a new stop-loss order  
+          set_stop_loss = self.client.futures_create_order(
+            symbol=self.trading_symbol,
+            side='SELL',
+            type='STOP_MARKET',
+            quantity=self.rounded_quantity,
+            stopPrice=self.stoploss
+        )
+          print("Modified stop-loss order:", set_stop_loss)
+
 
 
 
@@ -174,18 +177,35 @@ class BUY():
             self.tp = self.entry_price + 50
             self.tp =  int(self.tp)
             print("Calculated Take profit at: ",self.tp)
-
+            # frist big take profit  is 150 
             self.big_profit = self.tp + 100
             self.big_profit = int(self.big_profit)
             print("Calculated BIG Take profit at:", self.big_profit)
-
-            self.sec_big_profit = self.big_profit + 100
+            # for intranl stoploss for 190 frist
+            self.inter_stoploss_position =  self.big_profit + 40 
+            self.inter_stoploss_position = int(self.inter_stoploss_position)
+            # intrnal stoploss for 230 frist
+            self.sec_inter_stoploss_position = self.inter_stoploss_position + 40
+            self.sec_inter_stoploss_position = int(self.sec_inter_stoploss_position)
+            #sec big take profit 260 
+            self.sec_big_profit = self.big_profit + 110
             self.sec_big_profit = int(self.sec_big_profit)
             print("Calculated sec big profit profit at:",self.sec_big_profit)
-
-            self.thi_big_profit = self.sec_big_profit + 100
+            # intrnal stoploss for 300 for sec
+            self.thi_inter_stoploss_position = self.sec_big_profit + 40
+            self.thi_inter_stoploss_position =int(self.thi_inter_stoploss_position)
+            # intrnal stoploss for 340  for  sec
+            self.four_inter_stoploss_position = self.thi_inter_stoploss_position + 40
+            self.four_inter_stoploss_position = int(self.four_inter_stoploss_position)
+            # intrnal stoploss for 380  for  sec
+            self.five_inter_stoploss_position =self.five_inter_stoploss_position + 40
+            self.five_inter_stoploss_position = int(self.five_inter_stoploss_position)
+        
+            # third big take profit  400 
+            self.thi_big_profit = self.five_inter_stoploss_position + 20
             self.thi_big_profit = int(self.thi_big_profit)
             print("Calculated 3rd big prifit profit at:",self.thi_big_profit)
+
 
             self.exit_price = self.stoploss
             print("Initial exit price set to stoploss:", self.exit_price)
@@ -200,31 +220,43 @@ class BUY():
 
       if closing_floor == self.tp :
           self.exit_price = close_price
-          self.stoploss = self.entry_price
           print("Half price is sole at this point:", self.exit_price)
           print("Now the new stoploss is set as",self.stoploss)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit,self.thi_big_profit)
 
       if closing_floor == self.big_profit :
           self.exit_price = close_price
-          self.stoploss = self.tp 
+          self.stoploss = self.entry_price
           print("The new stoploss is set as :",self.stoploss)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit,self.thi_big_profit)
-
+     #Setting the intral stoploss for 190
+      if closing_floor ==self.inter_stoploss_position :
+           self.stoploss = self.entry_price + 20
+     #setting the intrnal stoploss 230
+      if closing_floor == self.sec_inter_stoploss_position:
+           self.stoploss = self.stoploss + 20
+     #setting the intrnal stoploss 260
       if closing_floor == self.sec_big_profit:
-          self.stoploss =self.tp + 20
+          self.stoploss =  self.stoploss + 20
           print("The new stoploss is set as :",self.stoploss)
-        #   self.trailing_stoploss(closing_floor)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit,self.thi_big_profit)
+      #setting the intrnal stoploss 300
+      if closing_floor == self.thi_inter_stoploss_position:
+           self.stoploss =self.stoploss + 20
+      #setting the intrnal stoploss 340
+      if closing_floor == self.four_inter_stoploss_position:
+           self.stoploss =self.stoploss + 20
+      #setting the intrnal stoploss 380 
+      if closing_floor == self.five_inter_stoploss_position:
+           self.stoploss =self.stoploss + 20 
 
       if closing_floor == self.thi_big_profit:
-          self.thi_big_profit =  self.thi_big_profit + 100
-          self.stoploss =self.stoploss + 10
+          self.thi_big_profit =  self.thi_big_profit + 20 
+          self.stoploss =self.stoploss + 20
           print("The new stoploss is set as :",self.stoploss )
           print("The new 3rd big profit", self.thi_big_profit)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit ,self.thi_big_profit)
-           
-
+    
     
     def Previous_Data(self,df, close_price):
         previous_data= df.iloc[-1]
