@@ -150,15 +150,15 @@ class BUY():
             side='SELL',
             type='STOP_MARKET',
             quantity=self.rounded_quantity,
-            stopPrice=self.stoploss
-        )
+            stopPrice=self.stoploss )
+          
           print("Modified stop-loss order:", set_stop_loss)
 
 
 
 
     def run_trading_strategy_Sell(self, timestamp, last_open_price, last_close_price, last_high_price, last_low_price, last_EMA, is_Red,close_price):
-      pointes = self.exit_price - self.entry_price
+      pointes = self.entry_price + closing_floor
       closing_floor =int(close_price)
       if not is_Red and last_high_price < last_EMA:
             print('##################################')
@@ -229,33 +229,54 @@ class BUY():
           self.stoploss = self.entry_price
           print("The new stoploss is set as :",self.stoploss)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit,self.thi_big_profit)
+          #creating the a new order for every chang in stoploss 
+          self.trailing_stoploss()
+
      #Setting the intral stoploss for 190
       if closing_floor ==self.inter_stoploss_position :
            self.stoploss = self.entry_price + 20
+           #creating the a new order for every change in stoploss 
+           self.trailing_stoploss()
+
      #setting the intrnal stoploss 230
       if closing_floor == self.sec_inter_stoploss_position:
            self.stoploss = self.stoploss + 20
+           self.trailing_stoploss()
+
      #setting the intrnal stoploss 260
       if closing_floor == self.sec_big_profit:
           self.stoploss =  self.stoploss + 20
           print("The new stoploss is set as :",self.stoploss)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit,self.thi_big_profit)
+          #creating the a new order for every change in stoploss 
+          self.trailing_stoploss()
+
       #setting the intrnal stoploss 300
       if closing_floor == self.thi_inter_stoploss_position:
            self.stoploss =self.stoploss + 20
+           #creating the a new order for every chang in stoploss 
+           self.trailing_stoploss()
+
       #setting the intrnal stoploss 340
       if closing_floor == self.four_inter_stoploss_position:
            self.stoploss =self.stoploss + 20
+           #creating the a new order for every change in stoploss 
+           self.trailing_stoploss()
+
       #setting the intrnal stoploss 380 
       if closing_floor == self.five_inter_stoploss_position:
            self.stoploss =self.stoploss + 20 
+           #creating the a new order for every change in stoploss 
+           self.trailing_stoploss()
 
-      if closing_floor == self.thi_big_profit:
+      if closing_floor == self.thi_big_profit :
           self.thi_big_profit =  self.thi_big_profit + 20 
           self.stoploss =self.stoploss + 20
           print("The new stoploss is set as :",self.stoploss )
           print("The new 3rd big profit", self.thi_big_profit)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit ,self.thi_big_profit)
+          #creating the a new order for every change in stoploss 
+          self.trailing_stoploss()
     
     
     def Previous_Data(self,df, close_price):
@@ -327,7 +348,6 @@ if __name__ == "__main__":
     buy.set_initial_balance()
     buy.set_leverage()
     buy.fetch_history_data()
-
     buy.connect_websocket()
 
     
