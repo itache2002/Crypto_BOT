@@ -6,13 +6,16 @@ import pandas as pd
 import numpy as np
 from openpyxl import Workbook, load_workbook
 from datetime import datetime
+import time 
+import math
+from binance.exceptions import BinanceAPIException, BinanceOrderException
 
 
 class TradingBot:
     def __init__(self, api_key, api_secret, trading_symbol, leverage, risk_reward_ratio):
         self.api_key = api_key
         self.api_secret = api_secret
-        self.trading_symbol = trading_symbol
+        self.trading_symbol =  trading_symbol
         self.leverage = leverage
         self.rrr = risk_reward_ratio
         self.client = Client(api_key, api_secret)
@@ -28,7 +31,7 @@ class TradingBot:
 
     def set_initial_balance(self):
         start_balance = self.client.futures_account_balance()
-        initial_balance = start_balance[0]['balance']
+        initial_balance = start_balance[5]['balance']
         print("================================")
         print('Initial balance:  {}'.format(initial_balance))
         print("================================")
@@ -47,6 +50,63 @@ class TradingBot:
         self.df_final['EMA'] = np.round(abstract.EMA(self.df_final['C'], timeperiod=5),2)
         print(self.df_final.tail(5))
 
+    def place_order(self):
+        exchange_info = self.client.get_exchange_info()
+        symbol_info = next(item for item in exchange_info['symbols'] if item['symbol'] == self.trading_symbol)
+        price_filter = next((filter for filter in symbol_info['filters'] if filter['filterType'] == 'PRICE_FILTER'), None)
+        lot_size_filter = next((filter for filter in symbol_info['filters'] if filter['filterType'] == 'LOT_SIZE'), None)
+        precision_for_price = int(-math.log10(float(price_filter['tickSize'])))
+        precision_for_quantity = int(-math.log10(float(lot_size_filter['stepSize'])))
+
+        check_position = self.client.futures_position_information()
+        df = pd.DataFrame(check_position)
+        position_amount = df.iloc[240]['positionAmt']
+        TRADE_QUANTITY = (130 * self.leverage) / 42341
+        half_TRADE_QUANTITY = TRADE_QUANTITY/2
+        rounded_price = round(self.entry_price, precision_for_price)
+        rounded_quantity = round(TRADE_QUANTITY, precision_for_quantity)
+        round_half_quantity = round(half_TRADE_QUANTITY,precision_for_quantity)
+        print(rounded_price)
+        print(rounded_quantity)
+        print(round_half_quantity)
+        
+        if float(position_amount) == 0:
+            print("The entry price",self.entry_price)
+            try:
+                sell_limit_order =  self.client.futures_create_order(   symbol=self.trading_symbol, 
+                                                                        side='SELL', 
+                                                                        type='LIMIT', 
+                                                                        timeInForce='GTC',
+                                                                        price=rounded_price, 
+                                                                        quantity=rounded_quantity)
+                print('order placed')
+                order_id=sell_limit_order['orderId']
+                order_status = sell_limit_order['status']
+                print(order_id)
+                while order_status != 'FILLED':
+                    time.sleep(10)
+                    if order_status == 'FILLED':
+                                time.sleep(1)
+                                set_stop_loss = self.client.futures_create_order(symbol=self.trading_symbol,
+                                                                                 side='BUY', 
+                                                                                 type='STOP_MARKET', 
+                                                                                 quantity=rounded_quantity, 
+                                                                                 stopPrice=self.stoploss)
+                                time.sleep(1)
+                                set_take_profit = self.client.futures_create_order(symbol=self.trading_symbol, 
+                                                                                   side='BUY', 
+                                                                                   type='TAKE_PROFIT_MARKET', 
+                                                                                   quantity=round_half_quantity, 
+                                                                                   stopPrice=self.tp)
+            except BinanceAPIException as e:
+                    print(f"Binance API Exception: {e}")
+                    print(f"Status Code: {e.status_code}")
+                    print(f"Error Message: {e.message}")
+            except BinanceOrderException as e:
+                    # error handling goes here
+                    print(e)
+
+            
 
     def add_to_excel(self , timestamp ,entry_price, exit_price, stop_loss, take_profit, big_profit, pointes,sec_big_profit):
         try:
@@ -95,7 +155,7 @@ class TradingBot:
             print("=========================================================")
 
             print("The time is :",timestamp)
-            self.entry_price= last_close_price
+            self.entry_price= last_close_price + 1
             print("The Entry price: ",self.entry_price)
 
             self.stoploss = last_high_price
@@ -116,6 +176,8 @@ class TradingBot:
 
             self.exit_price = self.stoploss
             print("Initial exit price set to stoploss:", self.exit_price)
+            #placing the order
+            self.place_order()
 
 
       if closing_floor == self.stoploss:
@@ -124,6 +186,7 @@ class TradingBot:
           print(self.stoploss)
           print(close_price)
           self.add_to_excel(timestamp ,self.entry_price, self.exit_price , self.stoploss, self.tp, self.big_profit, pointes,self.sec_big_profit)
+
 
       if closing_floor == self.tp :
           self.exit_price = close_price
@@ -201,24 +264,25 @@ class TradingBot:
         ws.run_forever()
 
 if __name__ == "__main__":
-    # Replace these with your actual API key and secret
+  
     api_key = 'BwtkmrnTu9U2r1gjdy5gwtv3s8s82QR0kEt130MBNWLDMcImeJHU6Af8fyYpF7AN'
     api_secret = '9rJYUHzOrXnYdGY0dnsZwvcnmOVtrN1p8cHZwOtVeaAqRniY23A89Y8oMBRzeacF'
+    # api_key = 'j3L0QNlc51TweyuFSQiqn9uSaE TUOYRdBDLRzpH9BV88avPryFoJ02c9QV31bxs1'
+    # api_secret = '3tzp42W59aIdZ7LfRow89VAWP KOUv2QwaQMuNTfqEQ1t10GLG2cSuyOIbPbIFjc9'
     Trading_SYMBOL = 'BTCUSDT'
 
     # Initialize the trading bot
     trading_bot = TradingBot(api_key, api_secret, Trading_SYMBOL, 100, 2)
 
     # Set initial balance and leverage
-    # trading_bot.set_initial_balance()
-    # trading_bot.set_leverage()
-
+    trading_bot.set_initial_balance()
+    trading_bot.set_leverage()
     # # Fetch historical data
-    trading_bot.fetch_history_data()
+    # trading_bot.fetch_history_data()
 
    
     # Connect to WebSocket and start trading strategy
-    trading_bot.connect_websocket()
+    # trading_bot.connect_websocket()
     # trading_bot.run_trading_strategy()
 
 
