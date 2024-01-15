@@ -64,12 +64,12 @@ class TradingBot:
         TRADE_QUANTITY = (130 * self.leverage) / 42341
         half_TRADE_QUANTITY = TRADE_QUANTITY/2
         rounded_price = round(self.entry_price, precision_for_price)
-        rounded_quantity = round(TRADE_QUANTITY, precision_for_quantity)
+        rounded_quantity = round(TRADE_QUANTITY, 3)
         round_half_quantity = round(half_TRADE_QUANTITY,precision_for_quantity)
         print(rounded_price)
         print(rounded_quantity)
         print(round_half_quantity)
-        
+
         if float(position_amount) == 0:
             print("The entry price",self.entry_price)
             try:
