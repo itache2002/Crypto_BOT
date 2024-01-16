@@ -158,8 +158,8 @@ class BUY():
 
 
     def run_trading_strategy_Sell(self, timestamp, last_open_price, last_close_price, last_high_price, last_low_price, last_EMA, is_Red,close_price):
-      pointes = self.entry_price + closing_floor
       closing_floor =int(close_price)
+      pointes = self.entry_price + closing_floor
       if not is_Red and last_high_price < last_EMA:
             print('##################################')
             print('BUY SIGNAL IS ON! Executing order')
@@ -177,26 +177,33 @@ class BUY():
             self.tp = self.entry_price + 50
             self.tp =  int(self.tp)
             print("Calculated Take profit at: ",self.tp)
+
             # frist big take profit  is 150 
             self.big_profit = self.tp + 100
             self.big_profit = int(self.big_profit)
             print("Calculated BIG Take profit at:", self.big_profit)
+
             # for intranl stoploss for 190 frist
             self.inter_stoploss_position =  self.big_profit + 40 
             self.inter_stoploss_position = int(self.inter_stoploss_position)
+
             # intrnal stoploss for 230 frist
             self.sec_inter_stoploss_position = self.inter_stoploss_position + 40
             self.sec_inter_stoploss_position = int(self.sec_inter_stoploss_position)
+
             #sec big take profit 260 
             self.sec_big_profit = self.big_profit + 110
             self.sec_big_profit = int(self.sec_big_profit)
             print("Calculated sec big profit profit at:",self.sec_big_profit)
+
             # intrnal stoploss for 300 for sec
             self.thi_inter_stoploss_position = self.sec_big_profit + 40
             self.thi_inter_stoploss_position =int(self.thi_inter_stoploss_position)
+
             # intrnal stoploss for 340  for  sec
             self.four_inter_stoploss_position = self.thi_inter_stoploss_position + 40
             self.four_inter_stoploss_position = int(self.four_inter_stoploss_position)
+            
             # intrnal stoploss for 380  for  sec
             self.five_inter_stoploss_position =self.five_inter_stoploss_position + 40
             self.five_inter_stoploss_position = int(self.five_inter_stoploss_position)
