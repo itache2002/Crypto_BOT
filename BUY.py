@@ -73,7 +73,7 @@ class BUY():
         TRADE_QUANTITY = (32 * self.leverage) / rounded_price
         half_TRADE_QUANTITY = TRADE_QUANTITY/2
         self.rounded_quantity = round(TRADE_QUANTITY, 3)
-        round_half_quantity = round(half_TRADE_QUANTITY,precision_for_quantity)
+        round_half_quantity = round(half_TRADE_QUANTITY,3)
         print(rounded_price)
         print(self.rounded_quantity)
         print(round_half_quantity)
@@ -91,22 +91,19 @@ class BUY():
                 time.sleep(10)
                 print(order_status)
                 if order_status == 'FILLED' or order_status == 'NEW':
-                                time.sleep(1)
-                                set_stop_loss = self.client.futures_create_order(symbol=self.trading_symbol, 
-                                                                                 side='SELL', 
-                                                                                 type='STOP_MARKET', 
-                                                                                 quantity=self.rounded_quantity, 
-                                                                                 stopPrice=self.stoploss)
-                                time.sleep(1)
-                                print("placing the stoploss and take profit order",order_status)
-                                set_take_profit = self.client.futures_create_order(symbol=self.trading_symbol, 
-                                                                                   side='SELL', 
-                                                                                   type='TAKE_PROFIT_MARKET', 
-                                                                                   quantity=round_half_quantity, 
-                                                                                   stopPrice=self.tp)
-                                
+                    set_stop_loss = self.client.futures_create_order(symbol=self.trading_symbol, 
+                                                                        side='SELL', 
+                                                                        type='STOP_MARKET', 
+                                                                        quantity=self.rounded_quantity, 
+                                                                        stopPrice=self.stoploss)
+                    
 
-
+                    set_take_profit = self.client.futures_create_order(symbol=self.trading_symbol, 
+                                                                        side='SELL', 
+                                                                        type='TAKE_PROFIT_MARKET', 
+                                                                        quantity=round_half_quantity, 
+                                                                        stopPrice=self.tp)
+                    
             except  BinanceAPIException as e:
                     print(f"Binance API Exception: {e}")
                     print(f"Status Code: {e.status_code}")
