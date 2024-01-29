@@ -265,8 +265,8 @@ class TradingBot:
 
 if __name__ == "__main__":
   
-    api_key = 'BwtkmrnTu9U2r1gjdy5gwtv3s8s82QR0kEt130MBNWLDMcImeJHU6Af8fyYpF7AN'
-    api_secret = '9rJYUHzOrXnYdGY0dnsZwvcnmOVtrN1p8cHZwOtVeaAqRniY23A89Y8oMBRzeacF'
+    api_key = 'api_key'
+    api_secret = 'api_secret'
     # api_key = 'j3L0QNlc51TweyuFSQiqn9uSaE TUOYRdBDLRzpH9BV88avPryFoJ02c9QV31bxs1'
     # api_secret = '3tzp42W59aIdZ7LfRow89VAWP KOUv2QwaQMuNTfqEQ1t10GLG2cSuyOIbPbIFjc9'
     Trading_SYMBOL = 'BTCUSDT'
