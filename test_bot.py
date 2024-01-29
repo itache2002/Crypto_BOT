@@ -8,8 +8,8 @@ from talib import abstract
 import numpy as np
 
 # This api is for Mainnet.
-api_key = 'BwtkmrnTu9U2r1gjdy5gwtv3s8s82QR0kEt130MBNWLDMcImeJHU6Af8fyYpF7AN'
-api_secret ='9rJYUHzOrXnYdGY0dnsZwvcnmOVtrN1p8cHZwOtVeaAqRniY23A89Y8oMBRzeacF'
+api_key = 'API_KEY'
+api_secret ='api_secret'
 
 #This api is for Testnet.
 # api_key ='81d645dfd37d146787b05f364d07cdb0e1866112d60efd40240cdd0eea13ae0f'
