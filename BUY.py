@@ -342,8 +342,8 @@ class BUY():
 
 
 if __name__ == "__main__":
-    api_key = 'BwtkmrnTu9U2r1gjdy5gwtv3s8s82QR0kEt130MBNWLDMcImeJHU6Af8fyYpF7AN'
-    api_secret = '9rJYUHzOrXnYdGY0dnsZwvcnmOVtrN1p8cHZwOtVeaAqRniY23A89Y8oMBRzeacF'
+    api_key = 'API_KEY'
+    api_secret = 'API_secret'
     Trading_SYMBOL = 'BTCUSDT'
 
     buy = BUY(api_key, api_secret, Trading_SYMBOL, 100, 2)
